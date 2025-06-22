@@ -6,7 +6,7 @@
                 this.renderBuilding();
                 this.attachEventListeners();
             }
-
+            // done
             initializeRooms() {
                 // Initialize floors 1-9 (10 rooms each)
                 for (let floor = 1; floor <= 9; floor++) {
@@ -32,35 +32,82 @@
                     };
                 }
             }
+            //done
+            renderBuilding() {
+                const container = document.getElementById('floors-container');
+                container.innerHTML = '';
 
-            calculateTravelTime(room1Number, room2Number) {
-                const room1 = this.rooms[room1Number];
-                const room2 = this.rooms[room2Number];
+                // Render floors from top (10) to bottom (1)
+                for (let floor = 10; floor >= 1; floor--) {
+                    const floorDiv = document.createElement('div');
+                    floorDiv.className = 'floor';
 
-                if (!room1 || !room2) return 0;
+                    const roomCount = floor === 10 ? 7 : 10;
 
-                // Vertical travel time (2 minutes per floor)
-                const verticalTime = Math.abs(room1.floor - room2.floor) * 2;
+                    const floorLayout = document.createElement('div');
+                    floorLayout.className = 'floor-layout';
 
-                // Horizontal travel time (1 minute per room)
-                let horizontalTime = 0;
-                if (room1.floor === room2.floor) {
-                    horizontalTime = Math.abs(room1.position - room2.position);
+                    const roomsContainer = document.createElement('div');
+                    roomsContainer.className = 'rooms-container';
+
+                    // Create rooms for this floor
+                    for (let position = 1; position <= roomCount; position++) {
+                        const roomNumber = floor === 10 ? 1000 + position : floor * 100 + position;
+                        const room = this.rooms[roomNumber];
+
+                        const roomDiv = document.createElement('div');
+                        roomDiv.className = `room ${room.status}`;
+                        roomDiv.textContent = roomNumber;
+                        roomDiv.setAttribute('data-room', roomNumber);
+
+                        roomDiv.addEventListener('click', () => this.toggleRoom(roomNumber));
+                        roomsContainer.appendChild(roomDiv);
+                    }
+
+                    floorLayout.appendChild(roomsContainer);
+                    floorDiv.appendChild(floorLayout);
+                    container.appendChild(floorDiv);
+                }
+            }
+            //done
+            attachEventListeners() {
+                document.getElementById('suggest-rooms').addEventListener('click', () => this.suggestRooms());
+                document.getElementById('book-now').addEventListener('click', () => this.bookRooms());
+                document.getElementById('reset-booking').addEventListener('click', () => this.resetAllBookings());
+                document.getElementById('generate-availability').addEventListener('click', () => this.generateRandomBookings());
+            }
+            //done
+            suggestRooms() {
+                const count = parseInt(document.getElementById('room-count').value);
+                if (count < 1 || count > 5) {
+                    alert('Please enter a number between 1 and 5');
+                    return;
                 }
 
-                return verticalTime + horizontalTime;
+                this.clearSelections();
+                const suggestedRooms = this.findOptimalRooms(count);
+
+                if (suggestedRooms.length === 0) {
+                    alert('Not enough available rooms for your request');
+                    return;
+                }
+
+                // Mark suggested rooms
+                suggestedRooms.forEach(roomNumber => {
+                    const roomElement = document.querySelector(`[data-room="${roomNumber}"]`);
+                    if (roomElement) {
+                        roomElement.classList.add('suggested');
+                        setTimeout(() => {
+                            roomElement.classList.remove('suggested');
+                            roomElement.classList.add('selected');
+                            this.selectedRooms.add(roomNumber);
+                        }, 2000);
+                    }
+                });
+
+                this.updateBookingSummary();
             }
-
-            calculateTotalTravelTime(roomNumbers) {
-                if (roomNumbers.length <= 1) return 0;
-
-                const sortedRooms = [...roomNumbers].sort((a, b) => a - b);
-                const firstRoom = sortedRooms[0];
-                const lastRoom = sortedRooms[sortedRooms.length - 1];
-
-                return this.calculateTravelTime(firstRoom, lastRoom);
-            }
-
+            // done
             findOptimalRooms(count) {
                 const availableRooms = Object.values(this.rooms)
                     .filter(room => room.status === 'available')
@@ -121,111 +168,7 @@
 
                 return bestCombination;
             }
-
-            suggestRooms() {
-                const count = parseInt(document.getElementById('room-count').value);
-                if (count < 1 || count > 5) {
-                    alert('Please enter a number between 1 and 5');
-                    return;
-                }
-
-                this.clearSelections();
-                const suggestedRooms = this.findOptimalRooms(count);
-
-                if (suggestedRooms.length === 0) {
-                    alert('Not enough available rooms for your request');
-                    return;
-                }
-
-                // Mark suggested rooms
-                suggestedRooms.forEach(roomNumber => {
-                    const roomElement = document.querySelector(`[data-room="${roomNumber}"]`);
-                    if (roomElement) {
-                        roomElement.classList.add('suggested');
-                        setTimeout(() => {
-                            roomElement.classList.remove('suggested');
-                            roomElement.classList.add('selected');
-                            this.selectedRooms.add(roomNumber);
-                        }, 2000);
-                    }
-                });
-
-                this.updateBookingSummary();
-            }
-
-            renderBuilding() {
-                const container = document.getElementById('floors-container');
-                container.innerHTML = '';
-
-                // Render floors from top (10) to bottom (1)
-                for (let floor = 10; floor >= 1; floor--) {
-                    const floorDiv = document.createElement('div');
-                    floorDiv.className = 'floor';
-
-                    const roomCount = floor === 10 ? 7 : 10;
-                    const floorHeader = document.createElement('div');
-                    floorHeader.className = 'floor-header';
-                    floorHeader.innerHTML = `
-                        <span>Floor ${floor}</span>
-                        <span>${roomCount} rooms</span>
-                    `;
-
-                    const floorLayout = document.createElement('div');
-                    floorLayout.className = 'floor-layout';
-
-                    const stairsLift = document.createElement('div');
-                    stairsLift.className = 'stairs-lift';
-                    stairsLift.innerHTML = '🏃‍♂️<br>🛗<br>EXIT';
-
-                    const roomsContainer = document.createElement('div');
-                    roomsContainer.className = 'rooms-container';
-
-                    // Create rooms for this floor
-                    for (let position = 1; position <= roomCount; position++) {
-                        const roomNumber = floor === 10 ? 1000 + position : floor * 100 + position;
-                        const room = this.rooms[roomNumber];
-
-                        const roomDiv = document.createElement('div');
-                        roomDiv.className = `room ${room.status}`;
-                        roomDiv.textContent = roomNumber;
-                        roomDiv.setAttribute('data-room', roomNumber);
-
-                        roomDiv.addEventListener('click', () => this.toggleRoom(roomNumber));
-                        roomsContainer.appendChild(roomDiv);
-                    }
-
-                    floorLayout.appendChild(stairsLift);
-                    floorLayout.appendChild(roomsContainer);
-                    floorDiv.appendChild(floorHeader);
-                    floorDiv.appendChild(floorLayout);
-                    container.appendChild(floorDiv);
-                }
-            }
-
-            toggleRoom(roomNumber) {
-                const room = this.rooms[roomNumber];
-                const roomElement = document.querySelector(`[data-room="${roomNumber}"]`);
-
-                if (room.status === 'booked') {
-                    alert('This room is already booked!');
-                    return;
-                }
-
-                if (this.selectedRooms.has(roomNumber)) {
-                    this.selectedRooms.delete(roomNumber);
-                    roomElement.classList.remove('selected');
-                } else {
-                    if (this.selectedRooms.size >= 5) {
-                        alert('You can only select up to 5 rooms at a time!');
-                        return;
-                    }
-                    this.selectedRooms.add(roomNumber);
-                    roomElement.classList.add('selected');
-                }
-
-                this.updateBookingSummary();
-            }
-
+            //done
             updateBookingSummary() {
                 const summaryDiv = document.getElementById('booking-summary');
                 const roomsInfo = document.getElementById('selected-rooms-info');
@@ -243,7 +186,7 @@
                 const travelTime = this.calculateTotalTravelTime(selectedArray);
                 travelTimeInfo.innerHTML = `⏱️ Total Travel Time: ${travelTime} minutes`;
             }
-
+            //done
             bookRooms() {
                 if (this.selectedRooms.size === 0) {
                     alert('Please select at least one room!');
@@ -267,15 +210,36 @@
 
                 this.clearSelections();
             }
+            //done
+            calculateTotalTravelTime(roomNumbers) {
+                if (roomNumbers.length <= 1) return 0;
 
-            clearSelections() {
-                this.selectedRooms.clear();
-                document.querySelectorAll('.room.selected').forEach(room => {
-                    room.classList.remove('selected');
-                });
-                document.getElementById('booking-summary').style.display = 'none';
+                const sortedRooms = [...roomNumbers].sort((a, b) => a - b);
+                const firstRoom = sortedRooms[0];
+                const lastRoom = sortedRooms[sortedRooms.length - 1];
+
+                return this.calculateTravelTime(firstRoom, lastRoom);
             }
 
+            //done
+            calculateTravelTime(room1Number, room2Number) {
+                const room1 = this.rooms[room1Number];
+                const room2 = this.rooms[room2Number];
+
+                if (!room1 || !room2) return 0;
+
+                // Vertical travel time (2 minutes per floor)
+                const verticalTime = Math.abs(room1.floor - room2.floor) * 2;
+
+                // Horizontal travel time (1 minute per room)
+                let horizontalTime = 0;
+                if (room1.floor === room2.floor) {
+                    horizontalTime = Math.abs(room1.position - room2.position);
+                }
+
+                return verticalTime + horizontalTime;
+            }       
+            //done
             resetAllBookings() {
                 Object.values(this.rooms).forEach(room => {
                     room.status = 'available';
@@ -288,7 +252,7 @@
                 this.clearSelections();
                 alert('All bookings have been reset!');
             }
-
+            //done
             generateRandomBookings() {
                 this.resetAllBookings();
 
@@ -306,12 +270,37 @@
                 this.renderBuilding();
                 alert(`Generated ${numberOfBookings} random bookings!`);
             }
+            //done
+            toggleRoom(roomNumber) {
+                const room = this.rooms[roomNumber];
+                const roomElement = document.querySelector(`[data-room="${roomNumber}"]`);
 
-            attachEventListeners() {
-                document.getElementById('suggest-rooms').addEventListener('click', () => this.suggestRooms());
-                document.getElementById('book-now').addEventListener('click', () => this.bookRooms());
-                document.getElementById('reset-booking').addEventListener('click', () => this.resetAllBookings());
-                document.getElementById('generate-availability').addEventListener('click', () => this.generateRandomBookings());
+                if (room.status === 'booked') {
+                    alert('This room is already booked!');
+                    return;
+                }
+
+                if (this.selectedRooms.has(roomNumber)) {
+                    this.selectedRooms.delete(roomNumber);
+                    roomElement.classList.remove('selected');
+                } else {
+                    if (this.selectedRooms.size >= 5) {
+                        alert('You can only select up to 5 rooms at a time!');
+                        return;
+                    }
+                    this.selectedRooms.add(roomNumber);
+                    roomElement.classList.add('selected');
+                }
+
+                this.updateBookingSummary();
+            }
+            //done
+            clearSelections() {
+                this.selectedRooms.clear();
+                document.querySelectorAll('.room.selected').forEach(room => {
+                    room.classList.remove('selected');
+                });
+                document.getElementById('booking-summary').style.display = 'none';
             }
         }
 
